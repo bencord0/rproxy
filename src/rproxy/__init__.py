@@ -14,7 +14,6 @@ from twisted.internet.protocol import Protocol
 from twisted.python import usage
 from twisted.python.filepath import FilePath
 from twisted.web import server
-from twisted.web.client import Agent, HTTPConnectionPool
 from twisted.web.iweb import IBodyProducer
 from twisted.web.resource import Resource
 
@@ -57,6 +56,7 @@ class RProxyResource(Resource):
     isLeaf = True
 
     def __init__(self, hosts, clacks, pool, reactor):
+        from twisted.web.client import Agent
         self._clacks = clacks
         self._hosts = hosts
         self._agent = Agent(reactor, pool=pool)
@@ -204,6 +204,7 @@ def makeService(config):
                 raise ValueError("%s has onlysecure==False, but proxysecure==True. This means that the connection may not be TLS protected between the user and this proxy, only the proxy and the proxied server. This can trick your proxied server into thinking the user is being served over HTTPS. If this is okay (I can't imagine why it is), set %s_iamokwithlyingtomyproxiedserverthatheuserisoverhttps=True in your config." % (i, i))
 
     from twisted.internet import reactor
+    from twisted.web.client import HTTPConnectionPool
     pool = HTTPConnectionPool(reactor)
 
     resource = RProxyResource(hosts, rproxyConf.get("clacks"), pool, reactor)
