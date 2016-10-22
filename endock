@@ -7,6 +7,7 @@ docker build -t base -f base.Dockerfile .;
 docker build -t build -f build.Dockerfile .;
 
 mkdir -p build/wheelhouse;
+rm -f build/wheelhouse/rproxy-*;
 
 docker run --rm \
        -v "$(pwd)":/application \
