@@ -6,12 +6,9 @@ import ConfigParser
 
 from zope.interface import implementer
 
-from urllib import urlencode
 from urlparse import urlparse
 
 from twisted.application import service, strports
-from twisted.application.service import Service
-from twisted.internet import reactor
 from twisted.internet.defer import Deferred, succeed
 from twisted.internet.protocol import Protocol
 from twisted.python import usage
