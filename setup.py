@@ -10,7 +10,7 @@ setup(
     package_dir={"": "src"},
     install_requires=[
         'twisted[tls] >= 15.5.0',
-        'txsni',
+        'txacme',
         'incremental',
     ],
     zip_safe=False,
