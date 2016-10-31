@@ -228,11 +228,11 @@ def makeService(config):
             multiService.addService(strports.service('le:' + certificates + ':tcp:' + i, site))
 
         for host in hosts.keys():
-            with open(FilePath(certificates).child(host + ".pem").path, 'w'):
+            with open(FilePath(certificates).child(host + ".pem").path, 'a'):
                 # Open it so that txacme can find it
                 pass
             if hosts[host]["wwwtoo"]:
-                with open(FilePath(certificates).child("www." + host + ".pem").path, 'w'):
+                with open(FilePath(certificates).child("www." + host + ".pem").path, 'a'):
                     # Open it so that txacme can find it
                     pass
 
