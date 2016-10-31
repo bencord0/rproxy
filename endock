@@ -13,4 +13,4 @@ docker run --rm \
        -v "$(pwd)":/application \
        build;
 
-docker build -t glyph/rproxy .;
+docker build -t bencord0/rproxy .;

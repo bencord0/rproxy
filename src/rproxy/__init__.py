@@ -208,8 +208,9 @@ def makeService(config):
     from twisted.internet import reactor
     from twisted.web.client import HTTPConnectionPool
     pool = HTTPConnectionPool(reactor)
+    anonymous = False
 
-    resource = RProxyResource(hosts, rproxyConf.get("clacks"), pool, reactor)
+    resource = RProxyResource(hosts, rproxyConf.get("clacks"), pool, reactor, anonymous)
 
     site = server.Site(resource)
     multiService = service.MultiService()
