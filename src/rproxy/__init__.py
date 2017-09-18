@@ -14,8 +14,10 @@ from twisted.internet.protocol import Protocol
 from twisted.python import usage
 from twisted.python.filepath import FilePath
 from twisted.web import server
+from twisted.web import server, http
+from twisted.web.client import Agent, HTTPConnectionPool
 from twisted.web.iweb import IBodyProducer
-from twisted.web.resource import Resource
+from twisted.web.resource import Resource, EncodingResourceWrapper
 
 from ._version import __version__
 
@@ -55,11 +57,11 @@ class RProxyResource(Resource):
 
     isLeaf = True
 
-    def __init__(self, hosts, clacks, pool, reactor, anonymous):
-        from twisted.web.client import Agent
+    def __init__(self, hosts, clacks, pool, reactor, extraHeaders, anonymous):
         self._clacks = clacks
         self._hosts = hosts
         self._agent = Agent(reactor, pool=pool)
+        self._extraHeaders = extraHeaders
         self._anonymous = anonymous
 
     def render(self, request):
@@ -107,8 +109,12 @@ class RProxyResource(Resource):
         def write(res):
 
             request.code = res.code
+            old_headers = request.responseHeaders
             request.responseHeaders = res.headers
-            if not self.anonymous:
+            request.responseHeaders.setRawHeaders(
+                'content-encoding',
+                old_headers.getRawHeaders('content-encoding', []))
+            if not self._anonymous:
                 request.responseHeaders.addRawHeader("X-Proxied-By",
                                                      __version__.package + " " + __version__.base())
 
@@ -120,15 +126,21 @@ class RProxyResource(Resource):
                 request.responseHeaders.addRawHeader("X-Clacks-Overhead",
                                                      "GNU Terry Pratchett")
 
+            for name, values in self._extraHeaders:
+                request.responseHeaders.setRawHeaders(name, values)
+
             f = Deferred()
             res.deliverBody(Downloader(f, request.write))
             f.addCallback(lambda _: request.finish())
             return f
 
         def failed(res):
-            request.code = 500
+            request.setResponseCode(http.INTERNAL_SERVER_ERROR)
+            for name, values in self._extraHeaders:
+                request.responseHeaders.setRawHeaders(name, values)
             request.write(str(res))
             request.finish()
+            return res
 
         d.addCallback(write)
         d.addErrback(failed)
@@ -210,7 +222,9 @@ def makeService(config):
     pool = HTTPConnectionPool(reactor)
     anonymous = False
 
-    resource = RProxyResource(hosts, rproxyConf.get("clacks"), pool, reactor, anonymous)
+    resource = EncodingResourceWrapper(
+        RProxyResource(hosts, rproxyConf.get("clacks"), pool, reactor, {}, False),
+        [server.GzipEncoderFactory()])
 
     site = server.Site(resource)
     multiService = service.MultiService()
