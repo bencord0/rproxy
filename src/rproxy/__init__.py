@@ -2,11 +2,17 @@
 
 from __future__ import absolute_import, division
 
-import ConfigParser
+try:
+    from configparser import RawConfigParser
+except ImportError:
+    from ConfigParser import RawConfigParser
 
 from zope.interface import implementer
 
-from urlparse import urlparse
+try:
+    from urllib.parse import urlparse
+except ImportError:
+    from urlparse import urlparse
 
 from twisted.application import service, strports
 from twisted.internet.defer import Deferred, succeed
@@ -66,10 +72,11 @@ class RProxyResource(Resource):
 
     def render(self, request):
 
-        host = self._hosts.get(request.getRequestHostname().lower())
+        request_hostname = request.getRequestHostname().decode().lower()
+        host = self._hosts.get(request_hostname)
 
-        if not host and request.getRequestHostname().lower().startswith("www."):
-            host = self._hosts.get(request.getRequestHostname().lower()[4:])
+        if not host and request_hostname.startswith("www."):
+            host = self._hosts.get(request_hostname[4:])
 
             # The non-www host doesn't want to match to www.
             if not host["wwwtoo"]:
@@ -89,12 +96,13 @@ class RProxyResource(Resource):
 
         url = "{}://{}:{}/{}".format(
             "https" if host["proxysecure"] else "http",
-            host["host"], host["port"], request.path[1:])
+            host["host"], host["port"], request.path[1:].decode()
+        ).encode()
 
         urlFragments = urlparse(request.uri)
 
         if urlFragments.query:
-            url += "?" + urlFragments.query
+            url += b"?" + urlFragments.query
 
         for x in [b'content-length', b'connection', b'keep-alive', b'te',
             b'trailers', b'transfer-encoding', b'upgrade',
@@ -156,7 +164,7 @@ class Options(usage.Options):
 
 def makeService(config):
 
-    ini = ConfigParser.RawConfigParser()
+    ini = RawConfigParser()
     ini.read(config['config'])
 
     configPath = FilePath(config['config']).parent()
