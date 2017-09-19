@@ -1,18 +1,16 @@
-FROM base
+FROM python:3.6.2 as builder
 
-ADD build/wheelhouse /wheelhouse
-RUN . /appenv/bin/activate; \
-    pip install --no-index -f wheelhouse rproxy
+ENV WHEELHOUSE=/wheelhouse
+ENV PIP_WHEEL_DIR=/wheelhouse
+ENV PIP_FIND_LINKS=/wheelhouse
 
-# Build the dropin cache; apparently necessary to avoid premature reactor
-# imports?
-RUN . /appenv/bin/activate; \
-    twist --help; echo 'again?'; twist --help;
+COPY . /app
+RUN pip wheel /app
+
+FROM python:3.6.2
+
+COPY --from=builder /wheelhouse /wheelhouse
+RUN pip install --no-index -f /wheelhouse rproxy
 
 VOLUME /conf
-
-EXPOSE 8000
-EXPOSE 8443
-
-ENTRYPOINT . /appenv/bin/activate; \
-           twist rproxy --config=/conf/rproxy.ini
+ENTRYPOINT twist rproxy --config=/conf/rproxy.ini
